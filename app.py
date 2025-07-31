@@ -2,75 +2,83 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import os
-import streamlit as st
-
-# Check if logo file exists
-logo_path = "logo.png"
-if os.path.exists(logo_path):
-    st.image(logo_path, width=80)
-else:
-    st.markdown("🔷 Built by Vasena Inc. | Understand who moves your mission.", unsafe_allow_html=True)
-
-# Page setup
+# Set page config
 st.set_page_config(page_title="PartnerIQ Dashboard", layout="wide")
 
-# Header with logo and subtitle
-col1, col2 = st.columns([1, 5])
+# Load and display the logo once
+st.image("logo.png", width=80)  # Ensure logo.png is in the same folder
+
+# Horizontal header with two items on the same row
+col1, _ = st.columns([12, 1])
 with col1:
-    st.image("logo.png", width=80)  # Replace with your logo filename
-with col2:
-    st.markdown("### 🔷 Built by Vasena Inc. | Understand who moves your mission.\n📊 PartnerIQ: Donor & Partner Intelligence Dashboard")
+    st.markdown(
+        "<span style='font-size: 18px;'>🔷 <strong>Built by Vasena Inc.</strong> | Understand who moves your mission.<br>📊 PartnerIQ: Donor & Partner Intelligence Dashboard</span>",
+        unsafe_allow_html=True,
+    )
 
-# Upload data
-uploaded_file = st.file_uploader("Upload your donor file (CSV or Excel)", type=["csv", "xlsx"])
+# File upload section
+st.markdown("Upload your donor file (CSV or Excel)")
+uploaded_file = st.file_uploader(" ", type=["csv", "xlsx"])
 
-if uploaded_file is not None:
-    # Load data
+if uploaded_file:
+    # Read data
     if uploaded_file.name.endswith(".csv"):
         df = pd.read_csv(uploaded_file)
     else:
         df = pd.read_excel(uploaded_file)
 
-    # Format donation date
-    df['Donation Date'] = pd.to_datetime(df['Donation Date'], errors='coerce')
+    # Ensure column names
+    df.columns = [col.strip() for col in df.columns]
+    required_columns = {"Name", "Donation"}
+    if not required_columns.issubset(df.columns):
+        st.error("The file must contain 'Name' and 'Donation' columns.")
+    else:
+        # Tier assignment
+        def assign_tier(amount):
+            if amount >= 10000:
+                return "Tier A - High Impact"
+            elif amount >= 1000:
+                return "Tier B - Mid Impact"
+            else:
+                return "Tier C - Low Impact"
 
-    # Assign tiers
-    def assign_tier(row):
-        if row['Total Donation'] >= 10000:
-            return "Tier A - High Impact"
-        elif row['Total Donation'] >= 1000:
-            return "Tier B - Mid Impact"
-        else:
-            return "Tier C - Low Impact"
+        df["Impact Tier"] = df["Donation"].apply(assign_tier)
 
-    df['Impact Tier'] = df.apply(assign_tier, axis=1)
+        # Chart
+        tier_counts = df["Impact Tier"].value_counts().reindex(
+            ["Tier A - High Impact", "Tier B - Mid Impact", "Tier C - Low Impact"]
+        ).fillna(0)
 
-    # Tier distribution chart
-    tier_counts = df['Impact Tier'].value_counts()
-    colors = {
-        "Tier A - High Impact": "#2E8B57",
-        "Tier B - Mid Impact": "#4682B4",
-        "Tier C - Low Impact": "#87CEEB"
-    }
+        fig, ax = plt.subplots(figsize=(8, 4))
+        colors = ["seagreen", "steelblue", "skyblue"]
+        bars = ax.bar(tier_counts.index, tier_counts.values, color=colors)
 
-    fig, ax = plt.subplots()
-    bars = ax.bar(tier_counts.index, tier_counts.values, color=[colors.get(tier, "#888") for tier in tier_counts.index])
-    ax.set_title("Donor Distribution by Impact Tier", fontsize=16, pad=20)
-    ax.set_ylabel("Number of Donors")
-    ax.set_xlabel("")
+        # Inside labels
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                height / 2,
+                f"{int(height)}",
+                ha="center",
+                va="center",
+                fontsize=10,
+                color="white",
+                weight="bold",
+            )
 
-    for bar in bars:
-        height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2.0, height, f'{int(height)}', ha='center', va='bottom', fontsize=12)
+        ax.set_ylabel("Number of Donors")
+        ax.set_xlabel("")
+        ax.set_title("Donor Distribution by Impact Tier", fontsize=14)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        plt.tight_layout()
+        st.pyplot(fig)
 
-    st.pyplot(fig)
+        # Donor list sorted
+        st.markdown("### 🧾 Donor List Sorted by Donation Amount")
+        sorted_df = df.sort_values(by="Donation", ascending=False)[
+            ["Name", "Donation", "Impact Tier"]
+        ]
+        st.dataframe(sorted_df, use_container_width=True)
 
-    # Donor table sorted by donation amount (High to Low)
-    df_sorted = df.sort_values(by='Total Donation', ascending=False)
-
-    st.subheader("📋 Donor List (Sorted by Donation Amount)")
-    st.dataframe(df_sorted[['Donor Name', 'Total Donation', 'Donation Date', 'Campaign', 'Email', 'Impact Tier']])
-
-else:
-    st.warning("📁 Please upload a donor data file to proceed.")
