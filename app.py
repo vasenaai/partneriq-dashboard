@@ -2,6 +2,16 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
+import os
+import streamlit as st
+
+# Check if logo file exists
+logo_path = "logo.png"
+if os.path.exists(logo_path):
+    st.image(logo_path, width=80)
+else:
+    st.markdown("🔷 Built by Vasena Inc. | Understand who moves your mission.", unsafe_allow_html=True)
+
 # Page setup
 st.set_page_config(page_title="PartnerIQ Dashboard", layout="wide")
 
