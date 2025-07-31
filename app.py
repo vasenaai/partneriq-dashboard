@@ -82,3 +82,4 @@ st.pyplot(fig)
 st.markdown("### 🗂️ Partner Table")
 df_display = df[['Donor Name', 'Total Donation', 'Impact Tier']].sort_values(by='Total Donation', ascending=False)
 st.dataframe(df_display, use_container_width=True)
+
