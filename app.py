@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from PIL import Image
 
-# Set page config
+# Page setup
 st.set_page_config(page_title="PartnerIQ Dashboard", layout="wide")
 
-# --- Header with logo and captions ---
-logo = Image.open("vasena_logo.png")  # Make sure your logo is saved with this name
+# --- Logo and Tagline ---
+logo = Image.open("vasena_logo.png")  # Replace with your logo filename
 col1, col2 = st.columns([1, 5])
 with col1:
     st.image(logo, width=100)
@@ -20,16 +20,15 @@ with col2:
     </div>
     """, unsafe_allow_html=True)
 
-# --- File upload ---
-uploaded_file = st.file_uploader("Upload Donor Data (.csv)", type="csv")
+# --- File Upload ---
+uploaded_file = st.file_uploader("Upload Donor CSV", type="csv")
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
-    # --- Clean & prepare data ---
+    # --- Clean Data ---
     df['Donation Date'] = pd.to_datetime(df['Donation Date'], errors='coerce')
 
-    # Assign Impact Tier
     def assign_tier(row):
         if row['Total Donation'] >= 10000:
             return 'Tier A - High Impact'
@@ -40,11 +39,7 @@ if uploaded_file:
 
     df['Impact Tier'] = df.apply(assign_tier, axis=1)
 
-    # --- Display Donor Table ---
-    with st.expander("📋 View Donor List"):
-        st.dataframe(df[['Donor Name', 'Total Donation', 'Donation Date', 'Impact Tier']])
-
-    # --- Summary Chart ---
+    # --- Donor Tier Chart ---
     tier_counts = df['Impact Tier'].value_counts().reindex([
         'Tier A - High Impact', 'Tier B - Mid Impact', 'Tier C - Low Impact'
     ], fill_value=0)
@@ -65,11 +60,15 @@ if uploaded_file:
             ax.text(bar.get_x() + bar.get_width()/2, height/2, label,
                     ha='center', va='center', color='white', fontweight='bold', fontsize=10)
 
-    ax.set_title("📈 Donor Distribution by Impact Tier", fontsize=14)
+    ax.set_title("Donor Distribution by Impact Tier", fontsize=14)
     ax.set_ylabel("Number of Donors")
     ax.set_xticks([])
     st.pyplot(fig)
 
+    # --- Donor Table ---
+    st.subheader("📋 Donor List")
+    st.dataframe(df[['Donor Name', 'Total Donation', 'Donation Date', 'Campaign', 'Email', 'Impact Tier']])
+
     # --- Download Button ---
     csv = df.to_csv(index=False)
-    st.download_button("📥 Download Processed Data", data=csv, file_name="processed_donors.csv", mime="text/csv")
+    st.download_button("📥 Download Cleaned Data", data=csv, file_name="donor_data_with_tiers.csv", mime="text/csv")
