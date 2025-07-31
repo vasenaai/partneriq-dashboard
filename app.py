@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 # Page config
 st.set_page_config(page_title="PartnerIQ Dashboard", layout="wide")
@@ -39,22 +38,19 @@ if uploaded_file is not None:
     # Tier summary chart
     st.markdown("### 📊 Donor Distribution by Impact Tier")
 
-    tier_counts = df["Impact Tier"].value_counts().reindex(
-        ["Tier A - High Impact", "Tier B - Mid Impact", "Tier C - Low Impact"], fill_value=0
-    )
+    tier_order = ["Tier A - High Impact", "Tier B - Mid Impact", "Tier C - Low Impact"]
+    tier_counts = df["Impact Tier"].value_counts().reindex(tier_order, fill_value=0)
 
     fig, ax = plt.subplots()
     colors = ["seagreen", "steelblue", "skyblue"]
-    bars = sns.barplot(
-        x=tier_counts.index, y=tier_counts.values, ax=ax, palette=colors
-    )
+    bars = ax.bar(tier_counts.index, tier_counts.values, color=colors)
 
-    # Add tier labels inside bars
-    for bar, count, label in zip(bars.patches, tier_counts.values, tier_counts.index):
+    for bar, label in zip(bars, tier_counts.index):
+        height = bar.get_height()
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            bar.get_height() / 2,
-            f"{label}\n{int(count)}",
+            height / 2,
+            f"{label}\n{int(height)}",
             ha="center",
             va="center",
             fontsize=10,
@@ -62,9 +58,8 @@ if uploaded_file is not None:
             fontweight="bold"
         )
 
-    ax.set_xlabel("")
     ax.set_ylabel("Number of Donors")
-    ax.set_xticks([])  # Remove x-axis ticks/labels
+    ax.set_xticks([])  # Remove x-axis labels
     st.pyplot(fig)
 
     # Donor list
