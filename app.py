@@ -45,17 +45,20 @@ if uploaded_file is not None:
     colors = ["seagreen", "steelblue", "skyblue"]
     bars = ax.bar(tier_counts.index, tier_counts.values, color=colors)
 
-    for bar, label in zip(bars, tier_counts.index):
+       for bar, label in zip(bars, tier_counts.index):
         height = bar.get_height()
+        # Break label into two lines for better fit
+        short_label = label.replace(" - ", "\n")
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             height / 2,
-            f"{label}\n{int(height)}",
+            f"{short_label}\n{int(height)}",
             ha="center",
             va="center",
-            fontsize=10,
+            fontsize=9,
             color="white",
-            fontweight="bold"
+            fontweight="bold",
+            wrap=True
         )
 
     ax.set_ylabel("Number of Donors")
