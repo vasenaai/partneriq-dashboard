@@ -77,8 +77,11 @@ if uploaded_file:
         st.pyplot(fig)
 
         # Donor list
-        st.markdown("### 🧾 Donor List Sorted by Donation Amount")
-        sorted_df = df.sort_values(by="Donation", ascending=False)[
+       # Donor list with all original columns
+st.markdown("### 🧾 Donor List Sorted by Donation Amount")
+sorted_df = df.sort_values(by="Donation", ascending=False)
+st.dataframe(sorted_df, use_container_width=True)
+[
             ["Name", "Donation", "Impact Tier"]
         ]
         st.dataframe(sorted_df, use_container_width=True)
