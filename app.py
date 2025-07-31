@@ -8,12 +8,15 @@ st.set_page_config(page_title="PartnerIQ Dashboard", layout="wide")
 # Logo and header line
 col1, col2 = st.columns([1, 8])
 with col1:
-    st.image("logo.png", width=80)  # Make sure logo.png is in the same folder
+    try:
+        st.image("logo.png", width=80)  # Ensure logo.png is in the same folder
+    except:
+        st.warning("Logo not found.")
 with col2:
     st.markdown(
         """
         <div style='padding-top: 25px; font-size: 16px;'>
-        🔷 Built by <strong>Vasena Inc.</strong> | Understand who moves your mission.
+        🔷 Built by <strong>Vasena Inc.</strong> | Understand who moves your mission.<br>
         📊 <strong>PartnerIQ: Donor & Partner Intelligence Dashboard</strong>
         </div>
         """, unsafe_allow_html=True
@@ -35,7 +38,7 @@ if uploaded_file is not None:
 
     df["Impact Tier"] = df["Donation"].apply(assign_tier)
 
-    # Tier summary chart
+    # Donor Distribution by Tier Chart
     st.markdown("### 📊 Donor Distribution by Impact Tier")
 
     tier_order = ["Tier A - High Impact", "Tier B - Mid Impact", "Tier C - Low Impact"]
@@ -45,9 +48,8 @@ if uploaded_file is not None:
     colors = ["seagreen", "steelblue", "skyblue"]
     bars = ax.bar(tier_counts.index, tier_counts.values, color=colors)
 
-       for bar, label in zip(bars, tier_counts.index):
+    for bar, label in zip(bars, tier_counts.index):
         height = bar.get_height()
-        # Break label into two lines for better fit
         short_label = label.replace(" - ", "\n")
         ax.text(
             bar.get_x() + bar.get_width() / 2,
@@ -65,7 +67,7 @@ if uploaded_file is not None:
     ax.set_xticks([])  # Remove x-axis labels
     st.pyplot(fig)
 
-    # Donor list
+    # Donor Table sorted by Donation
     st.markdown("### 🧾 Donor List Sorted by Donation Amount")
     sorted_df = df.sort_values(by="Donation", ascending=False)
     st.dataframe(sorted_df, use_container_width=True)
