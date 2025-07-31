@@ -1,85 +1,75 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from datetime import datetime
+from PIL import Image
 
-# --- PAGE CONFIG ---
+# Set page config
 st.set_page_config(page_title="PartnerIQ Dashboard", layout="wide")
 
-# --- HEADER ---
-col1, col2 = st.columns([1, 8])
+# --- Header with logo and captions ---
+logo = Image.open("vasena_logo.png")  # Make sure your logo is saved with this name
+col1, col2 = st.columns([1, 5])
 with col1:
-    st.image("vasena_logo.png", width=90)
+    st.image(logo, width=100)
 with col2:
-    st.markdown(
-        "<h4 style='margin-bottom:0; color:#00008B;'>"
-        "🔷 Built by Vasena Inc. | Understand who moves your mission."
-        "</h4>",
-        unsafe_allow_html=True
-    )
+    st.markdown("""
+    <div style="padding-top: 20px;">
+        <span style="font-weight: bold; color: #0a58ca;">🔷 Built by Vasena Inc. | Understand who moves your mission.</span><br>
+        <span style="font-size: 20px; font-weight: 600;">📊 PartnerIQ: Donor & Partner Intelligence Dashboard</span>
+    </div>
+    """, unsafe_allow_html=True)
 
-st.markdown(
-    "<h1 style='margin-top:0;'>📊 PartnerIQ: Donor & Partner Intelligence Dashboard</h1>",
-    unsafe_allow_html=True
-)
+# --- File upload ---
+uploaded_file = st.file_uploader("Upload Donor Data (.csv)", type="csv")
 
-# --- FILE UPLOAD ---
-uploaded_file = st.file_uploader("📥 Upload your donation or partner data (CSV or Excel)", type=["csv", "xlsx"])
-if not uploaded_file:
-    st.stop()
-
-# --- READ FILE ---
-if uploaded_file.name.endswith('.csv'):
+if uploaded_file:
     df = pd.read_csv(uploaded_file)
-else:
-    df = pd.read_excel(uploaded_file)
 
-# --- CLEAN & PROCESS DATA ---
-df.columns = df.columns.str.strip()
-if 'Last Donation Date' in df.columns:
-    df['Last Donation Date'] = pd.to_datetime(df['Last Donation Date'], errors='coerce')
-if 'Total Donation' in df.columns:
-    df['Total Donation'] = pd.to_numeric(df['Total Donation'], errors='coerce')
+    # --- Clean & prepare data ---
+    df['Donation Date'] = pd.to_datetime(df['Donation Date'], errors='coerce')
 
-# --- DEFINE SCORING LOGIC ---
-def assign_tier(row):
-    if row['Total Donation'] >= 10000:
-        return 'Tier A - High Impact'
-    elif row['Total Donation'] >= 3000:
-        return 'Tier B - Mid Impact'
-    else:
-        return 'Tier C - Low Impact'
+    # Assign Impact Tier
+    def assign_tier(row):
+        if row['Total Donation'] >= 10000:
+            return 'Tier A - High Impact'
+        elif row['Total Donation'] >= 1000:
+            return 'Tier B - Mid Impact'
+        else:
+            return 'Tier C - Low Impact'
 
-df['Impact Tier'] = df.apply(assign_tier, axis=1)
+    df['Impact Tier'] = df.apply(assign_tier, axis=1)
 
-# --- CHART ---
-tier_order = ['Tier A - High Impact', 'Tier B - Mid Impact', 'Tier C - Low Impact']
-df['Impact Tier'] = pd.Categorical(df['Impact Tier'], categories=tier_order, ordered=True)
-tier_counts = df['Impact Tier'].value_counts().reindex(tier_order).fillna(0)
+    # --- Display Donor Table ---
+    with st.expander("📋 View Donor List"):
+        st.dataframe(df[['Donor Name', 'Total Donation', 'Donation Date', 'Impact Tier']])
 
-colors = {
-    'Tier A - High Impact': '#2E8B57',  # Green
-    'Tier B - Mid Impact': '#4682B4',   # Blue
-    'Tier C - Low Impact': '#4682B4'    # Blue
-}
+    # --- Summary Chart ---
+    tier_counts = df['Impact Tier'].value_counts().reindex([
+        'Tier A - High Impact', 'Tier B - Mid Impact', 'Tier C - Low Impact'
+    ], fill_value=0)
 
-fig, ax = plt.subplots(figsize=(8, 4))
-bars = ax.bar(tier_counts.index, tier_counts.values, color=[colors[t] for t in tier_counts.index])
+    tier_colors = {
+        'Tier A - High Impact': '#2E8B57',
+        'Tier B - Mid Impact': '#4682B4',
+        'Tier C - Low Impact': '#1E90FF'
+    }
 
-# Add white labels inside bars
-for bar, label in zip(bars, tier_counts.index):
-    height = bar.get_height()
-    if height > 0:
-        ax.text(bar.get_x() + bar.get_width() / 2, height / 2, label, ha='center', va='center',
-                fontsize=12, fontweight='bold', color='white')
+    fig, ax = plt.subplots(figsize=(8, 4))
+    bars = ax.bar(tier_counts.index, tier_counts.values,
+                  color=[tier_colors[tier] for tier in tier_counts.index])
 
-ax.set_ylabel("Count")
-ax.set_xlabel("")
-ax.set_xticks([])
-ax.set_title("Tier Breakdown")
-st.pyplot(fig)
+    for bar, label in zip(bars, tier_counts.index):
+        height = bar.get_height()
+        if height > 0:
+            ax.text(bar.get_x() + bar.get_width()/2, height/2, label,
+                    ha='center', va='center', color='white', fontweight='bold', fontsize=10)
 
-# --- DONOR TABLE ---
-st.markdown("### 🗂️ Partner Table")
-df_display = df[['Donor Name', 'Total Donation', 'Impact Tier']].sort_values(by='Total Donation', ascending=False)
-st.dataframe(df_display, use_container_width=True)
+    ax.set_title("📈 Donor Distribution by Impact Tier", fontsize=14)
+    ax.set_ylabel("Number of Donors")
+    ax.set_xticks([])
+    st.pyplot(fig)
 
+    # --- Download Button ---
+    csv = df.to_csv(index=False)
+    st.download_button("📥 Download Processed Data", data=csv, file_name="processed_donors.csv", mime="text/csv")
